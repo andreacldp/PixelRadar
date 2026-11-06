@@ -7,10 +7,6 @@
 </p>
 
 <p align="center">
-  <img alt="Paleta de colores Roseus x Arcoiris" src="assets/palette.svg" width="520">
-</p>
-
-<p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-4E7BE0?style=flat-square&logo=python&logoColor=FFFFFF">
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-demo%20API-50F0D8?style=flat-square&logo=fastapi&logoColor=0D0D0D">
   <img alt="scikit-learn" src="https://img.shields.io/badge/scikit--learn-NearestNeighbors-B33A93?style=flat-square&logo=scikitlearn&logoColor=FFFFFF">

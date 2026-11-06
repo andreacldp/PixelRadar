@@ -1,0 +1,86 @@
+<svg width="100%" height="320" viewBox="0 0 1200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PixelRadar - radar de peces de acuario nocturno">
+  <defs>
+    <linearGradient id="bgL" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F7F2ED"/>
+      <stop offset="100%" stop-color="#EFE7E0"/>
+    </linearGradient>
+    <linearGradient id="fishGradAL" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E6457A"/>
+      <stop offset="100%" stop-color="#B33A93"/>
+    </linearGradient>
+    <linearGradient id="fishGradBL" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4E7BE0"/>
+      <stop offset="100%" stop-color="#2FB7A2"/>
+    </linearGradient>
+    <linearGradient id="titleGradL" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#B33A93"/>
+      <stop offset="55%" stop-color="#2FA394"/>
+      <stop offset="100%" stop-color="#4E7BE0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="320" fill="url(#bgL)"/>
+
+  <!-- burbujas -->
+  <g fill="#4E7BE0">
+    <circle cx="120" cy="300" r="4" opacity="0.5">
+      <animate attributeName="cy" values="300;-10" dur="7s" begin="0s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.5;0.5;0" keyTimes="0;0.1;0.8;1" dur="7s" begin="0s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="180" cy="300" r="2.5" opacity="0.45">
+      <animate attributeName="cy" values="300;-10" dur="5.5s" begin="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.45;0.45;0" keyTimes="0;0.1;0.8;1" dur="5.5s" begin="1.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1020" cy="300" r="3.5" opacity="0.45">
+      <animate attributeName="cy" values="300;-10" dur="6.5s" begin="0.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.45;0.45;0" keyTimes="0;0.1;0.8;1" dur="6.5s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="965" cy="300" r="2" opacity="0.4">
+      <animate attributeName="cy" values="300;-10" dur="4.8s" begin="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.4;0.4;0" keyTimes="0;0.1;0.8;1" dur="4.8s" begin="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="600" cy="300" r="2.5" opacity="0.35">
+      <animate attributeName="cy" values="300;-10" dur="8s" begin="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.35;0.35;0" keyTimes="0;0.1;0.8;1" dur="8s" begin="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- pez 1 (izquierda, magenta/coral) -->
+  <g transform="translate(210,110)">
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="0,0; 36,-10; 0,0; -18,8; 0,0" keyTimes="0;0.25;0.5;0.75;1" dur="9s" repeatCount="indefinite"/>
+      <g transform="scale(0.85)">
+        <path d="M -62,0 L -100,-24 L -92,0 L -100,24 Z" fill="url(#fishGradAL)">
+          <animateTransform attributeName="transform" type="rotate" values="0 -62 0; 12 -62 0; 0 -62 0; -12 -62 0; 0 -62 0" dur="1.1s" repeatCount="indefinite"/>
+        </path>
+        <ellipse cx="0" cy="0" rx="62" ry="30" fill="url(#fishGradAL)"/>
+        <path d="M -10,-28 Q 15,-46 36,-26 Q 14,-24 -10,-28 Z" fill="#B33A93"/>
+        <path d="M -38,-6 Q 6,-16 48,-2 Q 6,6 -38,-6 Z" fill="#2FA394" opacity="0.85"/>
+        <circle cx="40" cy="-6" r="7" fill="#1A1A1A"/>
+        <circle cx="42" cy="-8" r="2.4" fill="#FFFFFF"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- pez 2 (derecha, azul/aqua) -->
+  <g transform="translate(990,195)">
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="0,0; -30,9; 0,0; 20,-9; 0,0" keyTimes="0;0.25;0.5;0.75;1" dur="10.5s" begin="0.8s" repeatCount="indefinite"/>
+      <g transform="scale(0.68) rotate(180)">
+        <path d="M -62,0 L -100,-24 L -92,0 L -100,24 Z" fill="url(#fishGradBL)">
+          <animateTransform attributeName="transform" type="rotate" values="0 -62 0; 12 -62 0; 0 -62 0; -12 -62 0; 0 -62 0" dur="1.3s" repeatCount="indefinite"/>
+        </path>
+        <ellipse cx="0" cy="0" rx="62" ry="30" fill="url(#fishGradBL)"/>
+        <path d="M -10,-28 Q 15,-46 36,-26 Q 14,-24 -10,-28 Z" fill="#4E7BE0"/>
+        <path d="M -38,-6 Q 6,-16 48,-2 Q 6,6 -38,-6 Z" fill="#E6457A" opacity="0.8"/>
+        <circle cx="40" cy="-6" r="7" fill="#1A1A1A"/>
+        <circle cx="42" cy="-8" r="2.4" fill="#FFFFFF"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- titulo -->
+  <text x="600" y="150" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="68" font-weight="700" fill="url(#titleGradL)">PixelRadar</text>
+  <text x="600" y="190" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="19" font-style="italic" fill="#5B5752">Radar de precio y lanzamiento para juegos indie, con vecinos mas cercanos (KNN)</text>
+  <text x="600" y="222" text-anchor="middle" font-family="'Courier New', Courier, monospace" font-size="13" letter-spacing="2" fill="#B33A93">STEAM TAGS · KNN · FASTAPI</text>
+</svg>

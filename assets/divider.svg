@@ -1,0 +1,24 @@
+<svg width="100%" height="28" viewBox="0 0 1200 28" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="separador de olas">
+  <defs>
+    <linearGradient id="waveGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#B33A93"/>
+      <stop offset="35%" stop-color="#E6457A"/>
+      <stop offset="65%" stop-color="#4E7BE0"/>
+      <stop offset="100%" stop-color="#50F0D8"/>
+    </linearGradient>
+  </defs>
+  <path d="M0,14 Q50,2 100,14 T200,14 T300,14 T400,14 T500,14 T600,14 T700,14 T800,14 T900,14 T1000,14 T1100,14 T1200,14"
+        fill="none" stroke="url(#waveGrad)" stroke-width="2.5" opacity="0.85"/>
+  <circle cx="60" cy="8" r="2" fill="#50F0D8" opacity="0.8">
+    <animate attributeName="cy" values="8;20;8" dur="3s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="420" cy="18" r="1.6" fill="#E6457A" opacity="0.7">
+    <animate attributeName="cy" values="18;6;18" dur="3.6s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="780" cy="9" r="2" fill="#4E7BE0" opacity="0.7">
+    <animate attributeName="cy" values="9;21;9" dur="2.6s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="1120" cy="17" r="1.6" fill="#B33A93" opacity="0.7">
+    <animate attributeName="cy" values="17;5;17" dur="3.2s" repeatCount="indefinite"/>
+  </circle>
+</svg>

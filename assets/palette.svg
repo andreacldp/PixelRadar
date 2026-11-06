@@ -1,0 +1,24 @@
+<svg width="100%" height="140" viewBox="0 0 680 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Paleta de colores Roseus x Arcoiris">
+  <defs>
+    <linearGradient id="panelBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#141214"/>
+      <stop offset="100%" stop-color="#0D0D0D"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="678" height="138" rx="16" fill="url(#panelBg)" stroke="#2A2A2E" stroke-width="1"/>
+  <text x="24" y="30" font-family="Georgia, 'Times New Roman', serif" font-size="16" font-style="italic" fill="#D8DBE0">Paleta &#8226; Roseus &#215; Arcoiris</text>
+
+  <g font-family="'Courier New', Courier, monospace" font-size="13" text-anchor="middle">
+    <rect x="24" y="48" width="140" height="56" rx="10" fill="#B33A93"/>
+    <text x="94" y="82" fill="#F5F0EC">#B33A93</text>
+
+    <rect x="180" y="48" width="140" height="56" rx="10" fill="#E6457A"/>
+    <text x="250" y="82" fill="#F5F0EC">#E6457A</text>
+
+    <rect x="336" y="48" width="140" height="56" rx="10" fill="#4E7BE0"/>
+    <text x="406" y="82" fill="#F5F0EC">#4E7BE0</text>
+
+    <rect x="492" y="48" width="140" height="56" rx="10" fill="#50F0D8"/>
+    <text x="562" y="82" fill="#0D0D0D">#50F0D8</text>
+  </g>
+</svg>

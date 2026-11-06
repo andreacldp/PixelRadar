@@ -1,30 +1,3 @@
-"""
-collect_steam.py
------------------
-Recolecta un dataset de juegos indie de Steam combinando dos fuentes:
-  1. SteamSpy (https://steamspy.com/api.php)
-     - request=tag&tag=Indie   -> lista completa de juegos con tag "Indie"
-                                   (trae owners, reviews, precio actual)
-     - request=appdetails      -> detalle por juego (tags con votos, idiomas, genero)
-  2. Steam Store (https://store.steampowered.com/api/appdetails)
-     - fecha de lanzamiento (SteamSpy no la trae)
-
-DISENO:
-- Para evitar el sesgo hacia "exitos" (bajar solo los juegos con mas owners),
-  se hace un MUESTREO ESTRATIFICADO por owners_mid en 3 grupos: bajo, medio, alto.
-  Se toma una cantidad IGUAL de cada estrato (no proporcional), para que el
-  estrato "alto" (el mas chico, ~2.4% del total) no quede casi sin representacion.
-- Se filtra por un minimo de resenas totales (MIN_REVIEWS) porque con pocas
-  resenas el pct_positive es puro ruido (ej. 1 de 1 resena = 100%).
-- El script es RESUMIBLE: guarda cache de la lista completa (lenta, ~22s) y
-  de la muestra elegida (para no re-samplear distinto si se reinicia), y escribe
-  el CSV final fila por fila, así que si se interrumpe (Ctrl+C) o se cae la
-  conexion, al volver a correrlo continua donde se quedo sin perder progreso
-  ni duplicar llamadas a las APIs.
-- Respeta limites de velocidad: ~1 req/seg en SteamSpy, ~1 cada 1.5s en Steam
-  Store, con reintentos (backoff) si hay error de red o código 429/5xx.
-"""
-
 import csv
 import json
 import random
@@ -35,52 +8,34 @@ from pathlib import Path
 
 import requests
 
-# En Windows la consola (y la redireccion a archivo) suele usar cp1252, que no
-# soporta varios caracteres que aparecen en nombres de juegos (comillas
-# tipograficas, acentos raros, etc). Forzamos UTF-8 para no tronar al imprimir.
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-
-# ============================================================
-# CONFIGURACION (ajusta aqui, no en medio del codigo)
-# ============================================================
 
 BASE_DIR = Path(__file__).parent
 CACHE_DIR = BASE_DIR / "data" / ".cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-TAG_LIST_CACHE = CACHE_DIR / "tag_list_indie.json"      # cache de la lista completa (52k+ juegos)
-SAMPLE_CACHE = CACHE_DIR / "sample_appids.csv"           # cache de la muestra estratificada elegida
-OUTPUT_CSV = BASE_DIR / "indie_games.csv"                # resultado final
-DROPPED_LOG = BASE_DIR / "data" / "dropped_games.csv"    # juegos que se descartaron, con la razon
+TAG_LIST_CACHE = CACHE_DIR / "tag_list_indie.json"
+SAMPLE_CACHE = CACHE_DIR / "sample_appids.csv"
+OUTPUT_CSV = BASE_DIR / "indie_games.csv"
+DROPPED_LOG = BASE_DIR / "data" / "dropped_games.csv"
 
-N_POR_ESTRATO = 100          # 100 x 3 estratos = 300 juegos totales
-MIN_REVIEWS = 10             # minimo de (positive + negative) para incluir un juego
-RANDOM_SEED = 42             # para que el muestreo sea reproducible
+N_POR_ESTRATO = 500
+MIN_REVIEWS = 10
+RANDOM_SEED = 42
 
-# limites de los 3 estratos, segun owners_mid (promedio del rango que da SteamSpy)
-ESTRATO_BAJO_MAX = 50_000        # owners_mid < 50,000      -> "bajo"
-ESTRATO_MEDIO_MAX = 500_000      # 50,000 <= owners_mid < 500,000 -> "medio"
-                                  # owners_mid >= 500,000    -> "alto"
+ESTRATO_BAJO_MAX = 50_000
+ESTRATO_MEDIO_MAX = 500_000
 
-STEAMSPY_DELAY = 1.1          # segundos entre llamadas a SteamSpy (limite ~1 req/seg)
-STORE_DELAY = 1.5             # segundos entre llamadas a Steam Store (mas estricto)
+STEAMSPY_DELAY = 1.1
+STORE_DELAY = 1.5
 MAX_RETRIES = 3
 TIMEOUT = 30
 
 HEADERS = {"User-Agent": "PixelRadar-research-script/1.0 (uso academico, no comercial)"}
 
 
-# ============================================================
-# FUNCIONES DE RED (con reintentos y backoff)
-# ============================================================
-
 def get_con_reintentos(url, params, timeout=TIMEOUT, max_retries=MAX_RETRIES):
-    """
-    Hace un GET con reintentos automaticos (backoff exponencial) si falla
-    por timeout, error de conexion, o codigo 429/5xx.
-    Devuelve el JSON ya parseado, o None si fallan todos los intentos.
-    """
     for intento in range(1, max_retries + 1):
         try:
             r = requests.get(url, params=params, headers=HEADERS, timeout=timeout)
@@ -95,7 +50,6 @@ def get_con_reintentos(url, params, timeout=TIMEOUT, max_retries=MAX_RETRIES):
                 print(f"    [error {r.status_code}] reintentando...")
                 time.sleep(3 * intento)
                 continue
-            # otros codigos (404, etc.) no tiene caso reintentar
             return None
         except requests.exceptions.RequestException as e:
             print(f"    [error de red: {e}] reintento {intento}/{max_retries}")
@@ -103,17 +57,7 @@ def get_con_reintentos(url, params, timeout=TIMEOUT, max_retries=MAX_RETRIES):
     return None
 
 
-# ============================================================
-# PASO 1: lista completa de juegos con tag "Indie" (via SteamSpy)
-# ============================================================
-
 def obtener_lista_indie():
-    """
-    Pide la lista completa de juegos tag=Indie a SteamSpy. Esta llamada
-    es lenta (~20s) pero trae TODO en una sola peticion (no hay paginacion
-    real: se probo page=0 y page=1 y devuelven exactamente lo mismo).
-    Se cachea en disco para no repetirla si se vuelve a correr el script.
-    """
     if TAG_LIST_CACHE.exists():
         print(f"Usando cache de la lista indie: {TAG_LIST_CACHE}")
         with open(TAG_LIST_CACHE, "r", encoding="utf-8") as f:
@@ -136,7 +80,6 @@ def obtener_lista_indie():
 
 
 def owners_a_mid(owners_str):
-    """Convierte 'X .. Y' (texto de SteamSpy) al punto medio numerico."""
     try:
         lo, hi = owners_str.replace(",", "").split(" .. ")
         return (int(lo) + int(hi)) / 2
@@ -154,17 +97,7 @@ def asignar_estrato(owners_mid):
     return "alto"
 
 
-# ============================================================
-# PASO 2: muestreo estratificado (cantidad IGUAL por estrato)
-# ============================================================
-
 def construir_muestra(juegos):
-    """
-    Filtra por numero minimo de resenas y arma la muestra estratificada.
-    Se cachea la muestra elegida (lista de appids) para que si el script
-    se interrumpe y se vuelve a correr, siga con los MISMOS juegos y no
-    elija una muestra distinta cada vez.
-    """
     if SAMPLE_CACHE.exists():
         print(f"Usando muestra ya elegida (cache): {SAMPLE_CACHE}")
         with open(SAMPLE_CACHE, "r", encoding="utf-8") as f:
@@ -196,7 +129,7 @@ def construir_muestra(juegos):
                   f"(se pidieron {N_POR_ESTRATO}).")
         muestra.extend(random.sample(lista, n))
 
-    random.shuffle(muestra)  # para que al recolectar no queden agrupados por estrato
+    random.shuffle(muestra)
 
     with open(SAMPLE_CACHE, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -207,16 +140,7 @@ def construir_muestra(juegos):
     return muestra
 
 
-# ============================================================
-# PASO 3: detalle por juego (SteamSpy appdetails + Steam Store)
-# ============================================================
-
 def parsear_fecha(fecha_texto):
-    """
-    Steam Store devuelve fechas como 'Sep 17, 2020'. Si el juego no tiene
-    fecha valida (ej. 'Coming soon', string vacio, formato raro), devuelve
-    (None, None, None) y se deja como nulo en el CSV.
-    """
     if not fecha_texto:
         return None, None, None
     try:
@@ -227,12 +151,6 @@ def parsear_fecha(fecha_texto):
 
 
 def obtener_detalle_juego(appid, nombre, estrato):
-    """
-    Combina SteamSpy appdetails + Steam Store appdetails para un solo juego.
-    Devuelve un dict con la fila lista para el CSV, o None si el juego
-    debe descartarse (y en ese caso registra la razon en DROPPED_LOG).
-    """
-    # --- SteamSpy appdetails ---
     ss = get_con_reintentos(
         "https://steamspy.com/api.php",
         {"request": "appdetails", "appid": appid},
@@ -261,7 +179,7 @@ def obtener_detalle_juego(appid, nombre, estrato):
     n_languages = len([x for x in languages_str.split(",") if x.strip()]) if languages_str else 0
 
     tags_dict = ss.get("tags", {})
-    if isinstance(tags_dict, list):  # SteamSpy devuelve [] si no hay tags, no {}
+    if isinstance(tags_dict, list):
         tags_dict = {}
     tags_ordenados = sorted(tags_dict.items(), key=lambda kv: -kv[1])
     tags_str = "|".join(t[0] for t in tags_ordenados)
@@ -269,7 +187,6 @@ def obtener_detalle_juego(appid, nombre, estrato):
     genre_str = ss.get("genre", "") or ""
     primary_genre = genre_str.split(",")[0].strip() if genre_str else None
 
-    # --- Steam Store appdetails (solo para fecha de lanzamiento) ---
     store = get_con_reintentos(
         "https://store.steampowered.com/api/appdetails",
         {"appids": appid, "cc": "us", "l": "en"},
@@ -282,10 +199,7 @@ def obtener_detalle_juego(appid, nombre, estrato):
         fecha_info = info.get("release_date", {})
         if not fecha_info.get("coming_soon", False):
             release_date, release_month, release_year = parsear_fecha(fecha_info.get("date"))
-        # si Steam Store no nos dio genero (raro), usamos el de SteamSpy ya guardado arriba
     else:
-        # el juego pudo haber sido removido de la tienda; igual lo conservamos
-        # porque SteamSpy si tiene sus datos, solo quedara sin fecha
         pass
 
     fila = {
@@ -309,10 +223,6 @@ def obtener_detalle_juego(appid, nombre, estrato):
     return fila, None
 
 
-# ============================================================
-# PASO 4: orquestacion principal (con resume automatico)
-# ============================================================
-
 COLUMNAS = [
     "appid", "name", "price_usd", "owners_mid", "owners_range", "owners_stratum",
     "positive", "negative", "n_reviews", "pct_positive", "n_languages", "tags",
@@ -321,7 +231,6 @@ COLUMNAS = [
 
 
 def cargar_appids_ya_procesados():
-    """Lee el CSV final (si existe) y los descartados, para no re-pedir lo ya hecho."""
     procesados = set()
     if OUTPUT_CSV.exists():
         with open(OUTPUT_CSV, "r", encoding="utf-8") as f:

@@ -1,31 +1,3 @@
-"""
-evaluate.py
------------
-Valida el modelo KNN de PixelRadar con leave-one-out (LOO):
-
-Para cada juego del dataset, lo "escondemos", le preguntamos al modelo
-"¿que precio le sugerirías a este juego basandote en sus vecinos?" usando
-SOLO los otros 299 juegos, y comparamos esa sugerencia contra el precio
-real del juego. Se compara contra dos baselines simples:
-  - mediana global de precio (sin usar ningun vecino, solo "el precio
-    tipico de un indie" en el resto del dataset)
-  - mediana de precio POR GENERO (un poco mas informado que el global)
-
-Si el KNN no le gana ni siquiera a la mediana global, el modelo no esta
-aportando nada sobre simplemente adivinar "el precio tipico".
-
-Tambien se prueba K = 5, 10, 20 y distancia coseno vs Jaccard, para ver
-si alguna combinacion es claramente mejor.
-
-NOTA sobre Jaccard: esta distancia esta hecha para vectores BINARIOS
-(presencia/ausencia), no para numeros continuos. Como el feature de
-n_languages esta escalado (continuo) en el modelo de produccion, para
-la comparacion con Jaccard se usa una version binaria de ese feature
-(1 si el juego tiene mas idiomas que la mediana del dataset, 0 si no).
-Esto es solo para esta comparacion experimental; el modelo de produccion
-(knn_model.py) sigue usando el feature escalado con distancia coseno.
-"""
-
 import sys
 import time
 
@@ -47,15 +19,10 @@ from knn_model import (
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-MIN_JUEGOS_MISMO_GENERO = 3  # si hay menos que esto, el baseline de genero usa el global
+MIN_JUEGOS_MISMO_GENERO = 3
 
-
-# ============================================================
-# Features para la variante JACCARD (solo para esta evaluacion)
-# ============================================================
 
 def construir_features_binario(df, top_tags, umbral=None):
-    """Igual que construir_matriz_features, pero n_languages queda BINARIO (0/1)."""
     onehot = np.zeros((len(df), len(top_tags)), dtype=float)
     for i, tags_str in enumerate(df["tags"]):
         tags_del_juego = set(t.strip() for t in tags_str.split("|"))
@@ -79,15 +46,7 @@ def vectorizar_binario(tags, n_languages, top_tags, umbral):
     return np.hstack([onehot, n_lang_bin])
 
 
-# ============================================================
-# Baselines (no usan KNN, se calculan una sola vez)
-# ============================================================
-
 def calcular_baselines_loo(df):
-    """
-    Para cada juego i, calcula los dos baselines usando los OTROS 299 juegos
-    (nunca usando el precio real del propio juego i, para que sea honesto).
-    """
     resultados = {}
     for i in range(len(df)):
         train = df.drop(index=i)
@@ -100,7 +59,7 @@ def calcular_baselines_loo(df):
         if len(mismo_genero) >= MIN_JUEGOS_MISMO_GENERO:
             baseline_genero = mismo_genero["price_usd"].median()
         else:
-            baseline_genero = baseline_global  # fallback: no hay suficientes del mismo genero
+            baseline_genero = baseline_global
 
         resultados[df.loc[i, "appid"]] = {
             "real_price": df.loc[i, "price_usd"],
@@ -112,16 +71,7 @@ def calcular_baselines_loo(df):
     return resultados
 
 
-# ============================================================
-# LOO para una combinacion (k, metrica)
-# ============================================================
-
 def evaluar_knn_loo(df, k, metric):
-    """
-    Corre leave-one-out completo para una combinacion de k y metrica.
-    Devuelve un dict {appid: precio_sugerido_o_None}.
-    metric: 'cosine' (usa n_languages escalado) o 'jaccard' (usa n_languages binario).
-    """
     predicciones = {}
     n = len(df)
 
@@ -156,24 +106,12 @@ def evaluar_knn_loo(df, k, metric):
     return predicciones
 
 
-# ============================================================
-# Metricas de error
-# ============================================================
-
 def calcular_mae_y_mediana(reales, predicciones):
     errores = np.abs(np.array(reales) - np.array(predicciones))
     return float(errores.mean()), float(np.median(errores))
 
 
 def calcular_smape(reales, predicciones):
-    """
-    sMAPE (error porcentual absoluto simetrico). A diferencia del MAPE
-    normal, no se dispara a infinito cuando el valor real es chico, porque
-    divide entre el PROMEDIO de real y predicho (no solo entre el real).
-    Se reporta en %, 0% = perfecto, 100% = el peor caso posible con esta formula.
-    Aqui siempre real>0 y pred>0 (ya se filtran antes), asi que no hay
-    division entre cero.
-    """
     reales = np.array(reales, dtype=float)
     predicciones = np.array(predicciones, dtype=float)
     denominador = (np.abs(reales) + np.abs(predicciones)) / 2
@@ -182,19 +120,13 @@ def calcular_smape(reales, predicciones):
 
 
 def reportar_combinacion(df, baselines, predicciones_knn, etiqueta):
-    """
-    Compara KNN vs los dos baselines, SOLO en el subconjunto de juegos donde
-    el KNN SI pudo dar un precio sugerido (tuvo al menos un vecino exitoso
-    de pago) y donde el precio real no es gratis. Así la comparación es
-    justa: los tres métodos se evalúan sobre exactamente los mismos juegos.
-    """
     filas = []
     for appid, pred_knn in predicciones_knn.items():
         base = baselines[appid]
         if base["real_price"] <= 0:
-            continue  # no evaluamos contra precio real $0
+            continue
         if pred_knn is None:
-            continue  # el KNN no tuvo vecinos exitosos de pago en este fold
+            continue
         filas.append({
             "appid": appid,
             "real": base["real_price"],
@@ -233,10 +165,6 @@ def reportar_combinacion(df, baselines, predicciones_knn, etiqueta):
         "mae_baseline_genero": mae_gen, "med_baseline_genero": med_gen, "smape_baseline_genero": smape_gen,
     }
 
-
-# ============================================================
-# MAIN
-# ============================================================
 
 def main():
     df = cargar_datos(DATA_PATH)

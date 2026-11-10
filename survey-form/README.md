@@ -15,40 +15,18 @@ decisiones de diseño" al final.
 
 ```bash
 npm install
-cp .env.example .env.local   # y pega ahí la URL del Apps Script (ver abajo)
+cp .env.example .env.local   # y pega ahí la URL del Apps Script (te la publica Google al desplegarlo)
 npm run dev
 ```
 
 Abre `http://localhost:3000`.
 
-## 1. Google Sheet + Apps Script
+El código del Apps Script que recibe las respuestas y las escribe en el Sheet está en
+[`apps-script/Code.gs`](apps-script/Code.gs). Los pasos para crear el Sheet y publicar
+ese script (y obtener la URL para `SHEETS_WEBHOOK_URL`) no están en este README — se
+hicieron/explicaron por fuera, puntualmente, al montar este proyecto.
 
-1. Crea un Google Sheet nuevo. Nómbralo como quieras (por ejemplo `PixelRadar - Respuestas`).
-2. En la primera hoja (pestaña), renómbrala a `Respuestas` (o cambia `SHEET_NAME` en
-   `apps-script/Code.gs` si prefieres otro nombre).
-3. En la fila 1, agrega estos encabezados, una columna por cada uno, en este orden:
-
-   ```
-   timestamp | situacion | tamano_equipo | pais | decide_precio | decide_fecha | tiempo_investigar | info_tranquilidad | usarias_1_a_5 | pagarias | contacto
-   ```
-
-4. Abre **Extensiones > Apps Script** desde el menú del Sheet.
-5. Borra el contenido de `Code.gs` que trae por defecto y pega el contenido de
-   [`apps-script/Code.gs`](apps-script/Code.gs) de este repo.
-6. Guarda el proyecto (ícono de disco o `Ctrl+S`).
-7. Click en **Implementar > Nueva implementación**.
-   - Tipo: **Aplicación web**.
-   - Ejecutar como: **Yo** (tu cuenta).
-   - Quién tiene acceso: **Cualquier usuario**.
-8. Autoriza los permisos que pida Google (es tu propio script accediendo a tu propio Sheet).
-9. Copia la **URL de la aplicación web** que te da al terminar — esa es tu
-   `SHEETS_WEBHOOK_URL`.
-
-> Si luego modificas `Code.gs`, tienes que crear **una nueva versión** de la
-> implementación (Implementar > Administrar implementaciones > editar > Nueva versión)
-> para que los cambios surtan efecto en la URL ya publicada.
-
-## 2. Variable de entorno
+## 1. Variable de entorno
 
 Local (`.env.local`, no se sube a git):
 
@@ -62,13 +40,13 @@ mismo valor, para los entornos de Production y Preview.
 La variable **no** lleva el prefijo `NEXT_PUBLIC_` a propósito: solo se usa dentro de la
 ruta de API (`src/app/api/submit/route.ts`), nunca llega al navegador.
 
-## 3. Desplegar en Vercel
+## 2. Desplegar en Vercel
 
 1. Sube este repo (o esta carpeta) a GitHub/GitLab/Bitbucket.
 2. En [vercel.com/new](https://vercel.com/new), importa el repositorio.
 3. Si `survey-form/` vive dentro de un repo más grande (como en este caso, junto al
    proyecto de Python de PixelRadar), en **Root Directory** selecciona `survey-form`.
-4. Agrega la variable de entorno `SHEETS_WEBHOOK_URL` (paso 2) antes de desplegar, o
+4. Agrega la variable de entorno `SHEETS_WEBHOOK_URL` (paso 1) antes de desplegar, o
    después desde Project Settings y vuelve a desplegar.
 5. Deploy. Vercel detecta Next.js automáticamente, no hace falta configurar nada más.
 

@@ -26,7 +26,7 @@ El proyecto recolecta datos reales de juegos indie de Steam (vía SteamSpy y la 
 
 ## 🫧 Features
 
-- **Dataset propio de juegos indie** ([`indie_games.csv`](indie_games.csv)): ~1654 juegos recolectados con muestreo estratificado por cantidad de owners (bajo / medio / alto), filtrando juegos con al menos 10 reseñas.
+- **Dataset propio de juegos indie** ([`indie_games.csv`](indie_games.csv)): ~1499 juegos recolectados con muestreo estratificado por cantidad de owners (500 bajo / 500 medio / 499 alto), filtrando juegos con al menos 10 reseñas.
 - **Modelo KNN** ([`knn_model.py`](knn_model.py)) sobre los 60 tags más frecuentes (one-hot) + cantidad de idiomas soportados (escalado), con distancia coseno.
 - **Benchmark automático** por cada consulta:
   - 💲 precio sugerido (mediana y rango P25–P75) calculado solo con vecinos "exitosos" y de pago.
@@ -44,14 +44,14 @@ Comparación leave-one-out del KNN contra los baselines, tomada de [`data/result
 
 | K  | Métrica | Evaluados | MAE KNN (USD) | sMAPE KNN (%) | MAE baseline global (USD) | MAE baseline género (USD) |
 |----|---------|-----------|----------------|----------------|-----------------------------|------------------------------|
-| 5  | coseno  | 1290      | 6.98           | 67.94          | 7.10                        | 7.25                         |
-| 10 | coseno  | 1323      | 6.78           | 65.85          | 7.11                        | 7.25                         |
-| 20 | coseno  | 1343      | **6.26**       | **62.26**      | 7.08                        | 7.23                         |
-| 5  | jaccard | 1292      | 7.55           | 69.41          | 7.09                        | 7.23                         |
-| 10 | jaccard | 1335      | 7.11           | 66.94          | 7.07                        | 7.22                         |
-| 20 | jaccard | 1346      | 6.47           | 63.28          | 7.07                        | 7.22                         |
+| 5  | coseno  | 1172      | 6.99           | 68.74          | 7.00                        | 7.09                         |
+| 10 | coseno  | 1198      | 6.85           | 67.24          | 7.00                        | 7.10                         |
+| 20 | coseno  | 1219      | **6.22**       | **62.95**      | 6.98                        | 7.09                         |
+| 5  | jaccard | 1181      | 7.47           | 69.81          | 7.00                        | 7.12                         |
+| 10 | jaccard | 1202      | 7.05           | 66.62          | 6.98                        | 7.08                         |
+| 20 | jaccard | 1220      | 6.45           | 63.65          | 6.97                        | 7.09                         |
 
-El mejor resultado observado es **K=20 con distancia coseno**, levemente por debajo de ambos baselines en error absoluto.
+El mejor resultado observado es **K=20 con distancia coseno**, levemente por debajo de ambos baselines en error absoluto. Resultados recalculados tras corregir el sesgo de muestreo del dataset (ver sección de recolección).
 
 ### Interfaz web
 
@@ -136,7 +136,7 @@ PixelRadar/
 ├── knn_model.py                # Modelo KNN: features, entrenamiento, benchmark de vecinos
 ├── evaluate.py                 # Evaluación leave-one-out (KNN vs baselines) -> MAE / sMAPE
 ├── collect_steam.py            # Recolección del dataset desde SteamSpy + Steam Store API
-├── indie_games.csv             # Dataset de juegos indie (~1654 filas)
+├── indie_games.csv             # Dataset de juegos indie (~1499 filas, estratificado por owners)
 ├── data/
 │   ├── dropped_games.csv       # Juegos descartados durante la recolección, con motivo
 │   ├── resultados_evaluacion.csv  # Salida de evaluate.py

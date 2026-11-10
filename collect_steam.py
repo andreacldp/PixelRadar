@@ -97,7 +97,21 @@ def asignar_estrato(owners_mid):
     return "alto"
 
 
-def construir_muestra(juegos):
+def contar_ya_tengo_por_estrato():
+    """Cuenta cuantos juegos ya hay en el CSV de salida para cada estrato,
+    para no pasarnos de la cuota si el script se corre mas de una vez
+    (por ejemplo tras cambiar N_POR_ESTRATO)."""
+    conteo = {"bajo": 0, "medio": 0, "alto": 0}
+    if OUTPUT_CSV.exists():
+        with open(OUTPUT_CSV, "r", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                estrato = row.get("owners_stratum")
+                if estrato in conteo:
+                    conteo[estrato] += 1
+    return conteo
+
+
+def construir_muestra(juegos, ya_procesados, ya_tengo_por_estrato):
     if SAMPLE_CACHE.exists():
         print(f"Usando muestra ya elegida (cache): {SAMPLE_CACHE}")
         with open(SAMPLE_CACHE, "r", encoding="utf-8") as f:
@@ -111,22 +125,26 @@ def construir_muestra(juegos):
         total_resenas = j["positive"] + j["negative"]
         if total_resenas < MIN_REVIEWS:
             continue
+        if j["appid"] in ya_procesados:
+            continue
         mid = owners_a_mid(j["owners"])
         estrato = asignar_estrato(mid)
         if estrato is None:
             continue
         candidatos_por_estrato[estrato].append((j["appid"], j["name"], estrato))
 
-    print("Candidatos disponibles tras filtro de calidad (>= %d resenas):" % MIN_REVIEWS)
+    print("Candidatos nuevos disponibles tras filtro de calidad (>= %d resenas):" % MIN_REVIEWS)
     for estrato, lista in candidatos_por_estrato.items():
-        print(f"  {estrato}: {len(lista)} disponibles")
+        print(f"  {estrato}: {len(lista)} disponibles (ya tengo {ya_tengo_por_estrato[estrato]} "
+              f"de {N_POR_ESTRATO})")
 
     muestra = []
     for estrato, lista in candidatos_por_estrato.items():
-        n = min(N_POR_ESTRATO, len(lista))
-        if n < N_POR_ESTRATO:
-            print(f"  AVISO: estrato '{estrato}' solo tiene {n} juegos disponibles "
-                  f"(se pidieron {N_POR_ESTRATO}).")
+        objetivo = max(0, N_POR_ESTRATO - ya_tengo_por_estrato[estrato])
+        n = min(objetivo, len(lista))
+        if n < objetivo:
+            print(f"  AVISO: estrato '{estrato}' solo tiene {n} juegos nuevos disponibles "
+                  f"(se necesitaban {objetivo} para llegar a la cuota).")
         muestra.extend(random.sample(lista, n))
 
     random.shuffle(muestra)
@@ -136,7 +154,7 @@ def construir_muestra(juegos):
         writer.writerow(["appid", "name", "estrato"])
         writer.writerows(muestra)
 
-    print(f"Muestra estratificada construida: {len(muestra)} juegos en total.")
+    print(f"Muestra estratificada construida: {len(muestra)} juegos nuevos en total.")
     return muestra
 
 
@@ -245,13 +263,12 @@ def cargar_appids_ya_procesados():
 
 def main():
     juegos = obtener_lista_indie()
-    muestra = construir_muestra(juegos)
 
     ya_procesados = cargar_appids_ya_procesados()
-    pendientes = [(aid, name, estr) for aid, name, estr in muestra if aid not in ya_procesados]
+    ya_tengo_por_estrato = contar_ya_tengo_por_estrato()
+    pendientes = construir_muestra(juegos, ya_procesados, ya_tengo_por_estrato)
 
-    print(f"\nTotal en la muestra: {len(muestra)} | ya procesados: {len(ya_procesados)} | "
-          f"pendientes: {len(pendientes)}")
+    print(f"\nPendientes por procesar: {len(pendientes)}")
 
     output_existe = OUTPUT_CSV.exists()
     dropped_existe = DROPPED_LOG.exists()

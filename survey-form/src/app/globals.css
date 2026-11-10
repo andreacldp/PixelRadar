@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Paleta reconstruida a partir del PDF de identidad visual (PixelRadar IdeasWeb.pdf):
+     fondo casi negro, texto gris apagado, acentos rosa/magenta y verde-azulado (menta),
+     con un azul terciario usado con moderación. No son valores HEX extraídos del PDF
+     (el PDF no trae una guía de estilo con swatches), son una aproximación visual fiel
+     a las capturas. Ajustar aquí si el equipo define valores exactos de marca. */
+  --color-bg: 6 6 8;
+  --color-fg: 245 245 247;
+  --color-muted: 148 148 158;
+  --color-accent-teal: 46 230 184;
+  --color-accent-pink: 240 57 122;
+  --color-accent-blue: 76 141 255;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-fg));
+}
+
+::selection {
+  background-color: rgb(var(--color-accent-pink) / 0.35);
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--color-accent-teal));
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+input,
+textarea,
+button {
+  font-family: inherit;
+}

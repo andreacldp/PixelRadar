@@ -8,7 +8,6 @@
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-4E7BE0?style=flat-square&logo=python&logoColor=FFFFFF">
-  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-demo%20API-50F0D8?style=flat-square&logo=fastapi&logoColor=0D0D0D">
   <img alt="scikit-learn" src="https://img.shields.io/badge/scikit--learn-NearestNeighbors-B33A93?style=flat-square&logo=scikitlearn&logoColor=FFFFFF">
   <img alt="Estado" src="https://img.shields.io/badge/estado-research%20%2F%20prototipo-E6457A?style=flat-square">
   <img alt="Licencia" src="https://img.shields.io/badge/licencia-sin%20especificar-333333?style=flat-square">
@@ -20,7 +19,7 @@
 
 **PixelRadar** es un proyecto de análisis de datos que responde una pregunta muy concreta para un desarrollador indie: *"si mi juego tiene estos tags en Steam, ¿a qué precio y en qué mes suelen lanzarse juegos parecidos que funcionaron bien?"*
 
-El proyecto recolecta datos reales de juegos indie de Steam (vía SteamSpy y la Store API), entrena un modelo de **K-Nearest Neighbors** sobre sus tags e idiomas soportados, y expone los resultados a través de una pequeña API/web hecha con FastAPI.
+El proyecto recolecta datos reales de juegos indie de Steam (vía SteamSpy y la Store API) y entrena un modelo de **K-Nearest Neighbors** sobre sus tags e idiomas soportados para estimar precio y mes de lanzamiento.
 
 <img src="assets/divider.svg" width="100%" height="24" alt="">
 
@@ -34,7 +33,6 @@ El proyecto recolecta datos reales de juegos indie de Steam (vía SteamSpy y la 
   - 📊 similitud promedio y porcentaje de vecinos gratuitos.
 - **Clasificación de "éxito"**: un vecino se considera exitoso si su cantidad de owners está por encima de la mediana local y tiene ≥ 70% de reseñas positivas.
 - **Evaluación leave-one-out** ([`evaluate.py`](evaluate.py)) comparando el KNN (coseno y jaccard, K=5/10/20) contra baselines de mediana global y mediana por género, con MAE y sMAPE.
-- **API + mini interfaz web** ([`app.py`](app.py)) para elegir tags, idiomas y K, y ver los resultados sin tocar código.
 
 <img src="assets/divider.svg" width="100%" height="24" alt="">
 
@@ -53,13 +51,6 @@ Comparación leave-one-out del KNN contra los baselines, tomada de [`data/result
 
 El mejor resultado observado es **K=20 con distancia coseno**, levemente por debajo de ambos baselines en error absoluto. Resultados recalculados tras corregir el sesgo de muestreo del dataset (ver sección de recolección).
 
-### Interfaz web
-
-<p align="center">
-  <!-- TODO: reemplazar por una captura real de la UI en http://127.0.0.1:8000 -->
-  <img alt="captura de la interfaz pendiente" src="https://img.shields.io/badge/captura-pendiente-333333?style=flat-square">
-</p>
-
 <img src="assets/divider.svg" width="100%" height="24" alt="">
 
 ## 🐠 Instalación
@@ -73,36 +64,16 @@ cd PixelRadar
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
-pip install fastapi uvicorn pydantic pandas numpy scikit-learn requests
+pip install pandas numpy scikit-learn requests
 ```
 
-> El repo todavía no incluye un `requirements.txt`; la lista de arriba son las dependencias que importan `app.py`, `knn_model.py`, `evaluate.py` y `collect_steam.py`.
+> El repo todavía no incluye un `requirements.txt`; la lista de arriba son las dependencias que importan `knn_model.py`, `evaluate.py` y `collect_steam.py`.
 
 <img src="assets/divider.svg" width="100%" height="24" alt="">
 
 ## 🐟 Uso
 
-### Levantar la API y la mini web
-
-```bash
-uvicorn app:app --reload
-```
-
-Abrí `http://127.0.0.1:8000`, marcá los tags de tu juego, elegí número de idiomas y K, y apretá **"Buscar juegos parecidos"**.
-
-### Usar la API directamente
-
-```bash
-# Lista de tags disponibles (los 60 más frecuentes del dataset)
-curl http://127.0.0.1:8000/api/tags
-
-# Pedir recomendación / benchmark
-curl -X POST http://127.0.0.1:8000/api/recommend \
-  -H "Content-Type: application/json" \
-  -d '{"tags": ["Pixel Graphics", "Platformer", "Difficult"], "n_languages": 3, "k": 20}'
-```
-
-### Correr el modelo sin la API
+### Correr el modelo KNN
 
 ```bash
 python knn_model.py
@@ -132,7 +103,6 @@ Descarga juegos indie desde SteamSpy y la Steam Store API, con caché y reintent
 
 ```
 PixelRadar/
-├── app.py                      # API FastAPI + mini interfaz web (/, /api/tags, /api/recommend)
 ├── knn_model.py                # Modelo KNN: features, entrenamiento, benchmark de vecinos
 ├── evaluate.py                 # Evaluación leave-one-out (KNN vs baselines) -> MAE / sMAPE
 ├── collect_steam.py            # Recolección del dataset desde SteamSpy + Steam Store API
@@ -149,7 +119,6 @@ PixelRadar/
 ## 🌊 Tecnologías
 
 - **Python** — lenguaje principal.
-- **FastAPI** + **Pydantic** — API y validación de requests.
 - **scikit-learn** — `NearestNeighbors` (KNN) y `StandardScaler`.
 - **pandas** / **NumPy** — manipulación de datos y features.
 - **Requests** — consumo de las APIs de SteamSpy y Steam Store.

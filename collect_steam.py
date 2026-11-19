@@ -98,9 +98,6 @@ def asignar_estrato(owners_mid):
 
 
 def contar_ya_tengo_por_estrato():
-    """Cuenta cuantos juegos ya hay en el CSV de salida para cada estrato,
-    para no pasarnos de la cuota si el script se corre mas de una vez
-    (por ejemplo tras cambiar N_POR_ESTRATO)."""
     conteo = {"bajo": 0, "medio": 0, "alto": 0}
     if OUTPUT_CSV.exists():
         with open(OUTPUT_CSV, "r", encoding="utf-8") as f:
@@ -160,12 +157,12 @@ def construir_muestra(juegos, ya_procesados, ya_tengo_por_estrato):
 
 def parsear_fecha(fecha_texto):
     if not fecha_texto:
-        return None, None, None
+        return None, None, None, None, None
     try:
         dt = datetime.strptime(fecha_texto, "%b %d, %Y")
-        return dt.strftime("%Y-%m-%d"), dt.month, dt.year
+        return dt.strftime("%Y-%m-%d"), dt.month, dt.year, dt.weekday(), dt.isocalendar()[1]
     except ValueError:
-        return None, None, None
+        return None, None, None, None, None
 
 
 def obtener_detalle_juego(appid, nombre, estrato):
@@ -193,6 +190,9 @@ def obtener_detalle_juego(appid, nombre, estrato):
     except (ValueError, TypeError):
         price_usd = None
 
+    median_forever = ss.get("median_forever")
+    average_forever = ss.get("average_forever")
+
     languages_str = ss.get("languages", "") or ""
     n_languages = len([x for x in languages_str.split(",") if x.strip()]) if languages_str else 0
 
@@ -207,18 +207,32 @@ def obtener_detalle_juego(appid, nombre, estrato):
 
     store = get_con_reintentos(
         "https://store.steampowered.com/api/appdetails",
-        {"appids": appid, "cc": "us", "l": "en"},
+        {"appids": appid, "cc": "mx", "l": "en"},
     )
     time.sleep(STORE_DELAY)
 
-    release_date, release_month, release_year = None, None, None
+    release_date, release_month, release_year, release_weekday, release_week = None, None, None, None, None
+    price_mx_initial, price_mx_final, price_mx_discount_percent = None, None, None
+    has_demo = None
+
     if store and store.get(str(appid), {}).get("success"):
         info = store[str(appid)]["data"]
+
         fecha_info = info.get("release_date", {})
         if not fecha_info.get("coming_soon", False):
-            release_date, release_month, release_year = parsear_fecha(fecha_info.get("date"))
-    else:
-        pass
+            release_date, release_month, release_year, release_weekday, release_week = parsear_fecha(
+                fecha_info.get("date")
+            )
+
+        price_overview = info.get("price_overview")
+        if price_overview:
+            price_mx_initial = price_overview.get("initial", 0) / 100
+            price_mx_final = price_overview.get("final", 0) / 100
+            price_mx_discount_percent = price_overview.get("discount_percent", 0)
+        elif info.get("is_free"):
+            price_mx_initial, price_mx_final, price_mx_discount_percent = 0.0, 0.0, 0
+
+        has_demo = bool(info.get("demos"))
 
     fila = {
         "appid": appid,
@@ -237,6 +251,14 @@ def obtener_detalle_juego(appid, nombre, estrato):
         "release_date": release_date,
         "release_month": release_month,
         "release_year": release_year,
+        "median_forever": median_forever,
+        "average_forever": average_forever,
+        "price_mx_initial": price_mx_initial,
+        "price_mx_final": price_mx_final,
+        "price_mx_discount_percent": price_mx_discount_percent,
+        "has_demo": has_demo,
+        "release_weekday": release_weekday,
+        "release_week": release_week,
     }
     return fila, None
 
@@ -245,6 +267,9 @@ COLUMNAS = [
     "appid", "name", "price_usd", "owners_mid", "owners_range", "owners_stratum",
     "positive", "negative", "n_reviews", "pct_positive", "n_languages", "tags",
     "primary_genre", "release_date", "release_month", "release_year",
+    "median_forever", "average_forever",
+    "price_mx_initial", "price_mx_final", "price_mx_discount_percent",
+    "has_demo", "release_weekday", "release_week",
 ]
 
 
@@ -261,7 +286,63 @@ def cargar_appids_ya_procesados():
     return procesados
 
 
+def verificar_header_actualizado():
+    if not OUTPUT_CSV.exists():
+        return True
+    with open(OUTPUT_CSV, "r", encoding="utf-8") as f:
+        header_actual = f.readline().strip().split(",")
+    return header_actual == COLUMNAS
+
+
+def backfill_campos_nuevos():
+    if not OUTPUT_CSV.exists():
+        print("No hay indie_games.csv todavia, no hay nada que backfillear.")
+        return
+
+    with open(OUTPUT_CSV, "r", encoding="utf-8") as f:
+        filas_viejas = list(csv.DictReader(f))
+
+    print(f"Actualizando campos nuevos para {len(filas_viejas)} juegos ya recolectados...")
+    print(f"Tiempo estimado: ~{len(filas_viejas) * (STEAMSPY_DELAY + STORE_DELAY) / 60:.0f} minutos.")
+
+    filas_nuevas = []
+    t_inicio = time.time()
+    for i, fila in enumerate(filas_viejas, start=1):
+        appid = int(fila["appid"])
+        nombre = fila["name"]
+        estrato = fila.get("owners_stratum", "")
+
+        fila_actualizada, razon = obtener_detalle_juego(appid, nombre, estrato)
+        if fila_actualizada is None:
+            print(f"[{i}/{len(filas_viejas)}] no se pudo actualizar {nombre} (appid {appid}): {razon}. "
+                  f"Se conserva la fila vieja, con los campos nuevos vacios.")
+            for col in COLUMNAS:
+                fila.setdefault(col, "")
+            filas_nuevas.append(fila)
+        else:
+            filas_nuevas.append(fila_actualizada)
+            print(f"[{i}/{len(filas_viejas)}] OK {nombre} (appid {appid})")
+
+    with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=COLUMNAS)
+        writer.writeheader()
+        writer.writerows(filas_nuevas)
+
+    print(f"\nListo. {len(filas_nuevas)} filas reescritas con los campos nuevos. "
+          f"Tiempo: {(time.time() - t_inicio) / 60:.1f} min.")
+
+
 def main():
+    if "--backfill" in sys.argv:
+        backfill_campos_nuevos()
+        return
+
+    if not verificar_header_actualizado():
+        print("indie_games.csv todavia tiene el header viejo (sin los campos nuevos de duracion/precio "
+              "MX/demo). Corre primero:")
+        print("    python collect_steam.py --backfill")
+        return
+
     juegos = obtener_lista_indie()
 
     ya_procesados = cargar_appids_ya_procesados()

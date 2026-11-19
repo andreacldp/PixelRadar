@@ -1,0 +1,69 @@
+{
+  "aaa_launches": [
+    {
+      "name": "TODO: nombre del juego AAA anunciado",
+      "start": "",
+      "end": "",
+      "type": "aaa_launch",
+      "source": "TODO: fuente oficial (pagina de Steam, anuncio del estudio, etc.)"
+    }
+  ],
+
+  "steam_sales": [
+    {
+      "name": "Steam Next Fest",
+      "start": "",
+      "end": "",
+      "type": "next_fest",
+      "source": "TODO: https://store.steampowered.com/sales/nextfest"
+    },
+    {
+      "name": "Steam Summer Sale",
+      "start": "",
+      "end": "",
+      "type": "steam_sale",
+      "source": "TODO: https://store.steampowered.com/sales"
+    },
+    {
+      "name": "Steam Winter Sale",
+      "start": "",
+      "end": "",
+      "type": "steam_sale",
+      "source": "TODO: https://store.steampowered.com/sales"
+    }
+  ],
+
+  "festivales": [
+    {
+      "name": "TODO: festival de juegos indie (ej. PAX, Gamescom, BitSummit, Latin American Games Show)",
+      "start": "",
+      "end": "",
+      "type": "festival",
+      "source": "TODO"
+    }
+  ],
+
+  "medios_que_roban_foco": [
+    {
+      "name": "TODO: estreno de pelicula taquillera",
+      "start": "",
+      "end": "",
+      "type": "movie_tv_sports",
+      "source": "TODO"
+    },
+    {
+      "name": "TODO: estreno de temporada de serie popular",
+      "start": "",
+      "end": "",
+      "type": "movie_tv_sports",
+      "source": "TODO"
+    },
+    {
+      "name": "TODO: evento deportivo relevante (ej. Mundial, Super Bowl)",
+      "start": "",
+      "end": "",
+      "type": "movie_tv_sports",
+      "source": "TODO"
+    }
+  ]
+}
